@@ -1,5 +1,6 @@
 import decimal
 import enum
+import functools
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ ENTRY_TYPE_MODEL_MAP: typing.Dict[typing.Type, BaseModel] = {
 }
 
 
-def strip_path(
+def strip_base_path(
     paths: typing.Union[str, typing.List[str]], base_path: pathlib.Path
 ) -> typing.Union[str, typing.List[str]]:
     """Strip the base path off the given path
@@ -94,7 +95,8 @@ def main(
         extra_validations=validation.HARDCORE_VALIDATIONS,
     )
 
-    base_path_value = pathlib.Path(base_path)
+    strip_path = functools.partial(strip_base_path, base_path=pathlib.Path(base_path))
+
     options = options_map.copy()
     for key, value in options.items():
         if isinstance(value, set):
@@ -105,7 +107,7 @@ def main(
             options[key] = value.value
         if not disable_path_stripping:
             if key in {"filename", "include"}:
-                options[key] = strip_path(value, base_path_value)
+                options[key] = strip_path(value)
     del options["dcontext"]
     if not disable_options:
         print(json.dumps(options))
@@ -114,6 +116,12 @@ def main(
         validation_result = ValidationResult(
             errors=list(map(ValidationError.from_orm, errors))
         )
+        for error in validation_result.errors:
+            filename = error.source.get("filename")
+            if filename is None:
+                continue
+            error.source["filename"] = strip_path(filename)
+
         print(validation_result.json())
         print()
     if not disable_entries:
@@ -122,7 +130,7 @@ def main(
             model = model_cls.from_orm(entry)
             filename = model.meta.get("filename")
             if filename is not None:
-                model.meta["filename"] = strip_path(filename, base_path_value)
+                model.meta["filename"] = strip_path(filename)
             if isinstance(model, Document):
                 model.filename = strip_path(model.filename)
             elif isinstance(model, Transaction):
@@ -130,9 +138,7 @@ def main(
                     posting_filename = posting.meta.get("filename")
                     if posting_filename is None:
                         continue
-                    posting.meta["filename"] = strip_path(
-                        posting_filename, base_path_value
-                    )
+                    posting.meta["filename"] = strip_path(posting_filename)
             print(model.json())
     sys.stdout.flush()
     exit(1 if errors else 0)

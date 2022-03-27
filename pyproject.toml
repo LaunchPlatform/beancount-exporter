@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "beancount-exporter"
-version = "0.1.2"
+version = "0.1.3"
 description = "Command line tool for exporting Beancount data as JSON"
 authors = ["Fang-Pen Lin <fangpen@launchplatform.com>"]
 license = "GNU GPLv2"

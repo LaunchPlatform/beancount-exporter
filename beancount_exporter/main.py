@@ -120,13 +120,17 @@ def main(
             filename = error.source.get("filename")
             if filename is not None:
                 error.source["filename"] = strip_path(filename)
-            error.entry.meta["filename"] = strip_path(error.entry.meta["filename"])
-            if isinstance(error.entry, Transaction):
-                for posting in error.entry.postings:
-                    posting_filename = posting.meta.get("filename")
-                    if posting_filename is None:
-                        continue
-                    posting.meta["filename"] = strip_path(posting_filename)
+            if error.entry is not None:
+                if "filename" in error.entry.meta:
+                    error.entry.meta["filename"] = strip_path(
+                        error.entry.meta["filename"]
+                    )
+                if isinstance(error.entry, Transaction):
+                    for posting in error.entry.postings:
+                        posting_filename = posting.meta.get("filename")
+                        if posting_filename is None:
+                            continue
+                        posting.meta["filename"] = strip_path(posting_filename)
 
         print(validation_result.json())
         print()

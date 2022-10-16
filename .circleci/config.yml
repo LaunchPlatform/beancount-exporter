@@ -6,6 +6,16 @@ orbs:
   python: circleci/python@1.5.0
 
 jobs:
+  test:
+    docker:
+      - image: cimg/python:3.10.2
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: poetry
+      - run:
+          name: Run test
+          command: poetry run python -m pytest ./tests -svvvv
   build-and-publish:
     docker:
       - image: cimg/python:3.10.2
@@ -27,7 +37,15 @@ jobs:
 workflows:
   build-and-publish:
     jobs:
+      - test:
+          filters:
+            # needed for deploy build
+            # ref: https://discuss.circleci.com/t/builds-for-tags-not-triggering/17681/7
+            tags:
+              only: /^.*/
       - build-and-publish:
+          requires:
+            - test
           filters:
             branches:
               ignore: /.*/

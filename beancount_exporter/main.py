@@ -28,6 +28,17 @@ from beancount_data import ValidationResult
 from pydantic import BaseModel
 
 
+class OptionEncoder(json.JSONEncoder):
+    def default(self, obj: typing.Any) -> typing.Any:
+        if isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, decimal.Decimal):
+            return str(obj)
+        elif isinstance(obj, enum.Enum):
+            return obj.value
+        return json.JSONEncoder.default(self, obj)
+
+
 ENTRY_TYPE_MODEL_MAP: typing.Dict[typing.Type, BaseModel] = {
     data.Open: Open,
     data.Close: Close,
@@ -99,18 +110,12 @@ def main(
 
     options = options_map.copy()
     for key, value in options.items():
-        if isinstance(value, set):
-            options[key] = list(value)
-        elif isinstance(value, decimal.Decimal):
-            options[key] = str(value)
-        elif isinstance(value, enum.Enum):
-            options[key] = value.value
         if not disable_path_stripping:
             if key in {"filename", "include"}:
                 options[key] = strip_path(value)
     del options["dcontext"]
     if not disable_options:
-        print(json.dumps(options))
+        print(json.dumps(options, cls=OptionEncoder))
         print()
     if not disable_validations:
         validation_result = ValidationResult(

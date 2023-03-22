@@ -159,6 +159,10 @@ def main(
                 model.filename = strip_path(model.filename)
             elif isinstance(model, Transaction):
                 for posting in model.postings:
+                    if posting.meta is None:
+                        # For posting generated from pad or other plugins, they may
+                        # not have meta value at all
+                        continue
                     posting_filename = posting.meta.get("filename")
                     if posting_filename is None:
                         continue

@@ -12,6 +12,8 @@ import click
 from beancount import loader
 from beancount.core import data
 from beancount.ops import validation
+from beancount.parser.grammar import ValueType
+from beancount_data import Amount
 from beancount_data import Balance
 from beancount_data import Close
 from beancount_data import Commodity
@@ -77,6 +79,17 @@ def strip_base_path(
         return list(map(functools.partial(_relative_to, base_path=base_path), paths))
     else:
         return _relative_to(paths, base_path)
+
+
+def convert_custom_value(
+    value_type: ValueType,
+) -> typing.Union[Amount, decimal.Decimal, str, bool]:
+    if value_type.dtype in {str, bool, decimal.Decimal}:
+        return value_type.value
+    elif value_type.dtype is data.Amount:
+        return Amount.from_orm(value_type.value)
+    else:
+        raise ValueError(f"Unexpected value type {value_type.dtype}")
 
 
 @click.command()
@@ -151,13 +164,19 @@ def main(
     if not disable_entries:
         for entry in entries:
             model_cls = ENTRY_TYPE_MODEL_MAP[type(entry)]
-            model = model_cls.from_orm(entry)
+            if isinstance(entry, data.Custom):
+                model = Custom(
+                    date=entry.date,
+                    meta=entry.meta,
+                    type=entry.type,
+                    values=list(map(convert_custom_value, entry.values)),
+                )
+            else:
+                model = model_cls.from_orm(entry)
             filename = model.meta.get("filename")
             if filename is not None:
                 model.meta["filename"] = strip_path(filename)
-            if isinstance(model, Document):
-                model.filename = strip_path(model.filename)
-            elif isinstance(model, Transaction):
+            if isinstance(model, Transaction):
                 for posting in model.postings:
                     if posting.meta is None:
                         # For posting generated from pad or other plugins, they may
@@ -167,6 +186,8 @@ def main(
                     if posting_filename is None:
                         continue
                     posting.meta["filename"] = strip_path(posting_filename)
+            elif isinstance(model, Document):
+                model.filename = strip_path(model.filename)
             print(model.json())
     sys.stdout.flush()
     exit(1 if errors else 0)

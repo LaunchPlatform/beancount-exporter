@@ -91,3 +91,36 @@ def test_txn_entries_generated_from_pad(tmp_path: pathlib.Path):
     assert padding_txn["postings"][1]["account"] == "Equity:Opening-Balances"
     assert padding_txn["postings"][1]["units"]["number"] == -123.45
     assert padding_txn["postings"][1]["units"]["currency"] == "USD"
+
+
+def test_custom_values(tmp_path: pathlib.Path):
+    bean_file_path = tmp_path / "main.bean"
+    bean_file_path.write_text(
+        textwrap.dedent(
+            """\
+    1970-01-01 custom "MOCK_TYPE" 123.45 USD TRUE "MOCK_STR_VALUE" 678.9
+
+    """
+        )
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [str(bean_file_path), "--base-path", str(tmp_path)],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    parts = result.output.split("\n")
+    entries = list(map(json.loads, parts[4:-1]))
+    assert len(entries)
+    custom = entries[0]
+    assert custom["date"] == "1970-01-01"
+    assert custom["entry_type"] == "custom"
+    assert custom["type"] == "MOCK_TYPE"
+    assert custom["values"] == [
+        {"number": 123.45, "currency": "USD"},
+        "True",
+        "MOCK_STR_VALUE",
+        678.9,
+    ]

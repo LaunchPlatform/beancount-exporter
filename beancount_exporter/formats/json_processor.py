@@ -24,7 +24,7 @@ from pydantic import BaseModel
 
 from .processor import Processor
 
-ENTRY_TYPE_MODEL_MAP: typing.Dict[typing.Type, BaseModel] = {
+ENTRY_TYPE_MODEL_MAP: dict[typing.Type, BaseModel] = {
     data.Open: Open,
     data.Close: Close,
     data.Commodity: Commodity,

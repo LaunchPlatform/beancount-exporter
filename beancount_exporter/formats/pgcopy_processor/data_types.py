@@ -1,7 +1,5 @@
 import typing
-import uuid
 
-from beancount.core import data
 from beancount_data.data_types import EntryType
 
 
@@ -23,10 +21,8 @@ class Column(typing.NamedTuple):
 
 
 Table = tuple[Column, ...]
-Extractor = typing.Callable[[uuid.UUID, data.Union], tuple]
 
 
 class EntryTypeConfig(typing.NamedTuple):
     type: EntryType
     table: Table
-    extractor: Extractor

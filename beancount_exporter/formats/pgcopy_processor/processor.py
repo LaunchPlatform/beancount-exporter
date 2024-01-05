@@ -62,6 +62,14 @@ class PgCopyProcessor(Processor):
             orjson.dumps(meta, default=orjson_default),
         )
 
+    def _extract_open(self, id: uuid.UUID, entry: data.Open) -> tuple:
+        return (
+            id,
+            entry.account,
+            entry.currencies,
+            entry.booking.value if entry.booking is not None else None,
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.base_entry_file, *self.entry_files.values()
@@ -81,15 +89,19 @@ class PgCopyProcessor(Processor):
         pass
 
     def process_entries(self, entries: data.Entries):
+        extractors = {data.Open: self._extract_open}
+        # TODO: to improve performance even more, maybe we can have multiprocessing
+        #       breaking down entries into groups first and process them in different
+        #       thread / processors
         for entry in entries:
             entry_type = type(entry)
             entry_config = self.entry_configs.get(entry_type)
             if entry_config is None:
                 # XXX:
                 continue
-            id = uuid.uuid4()
+            entry_id = uuid.uuid4()
             base_entry_values = self._extract_entry(
-                id,
+                entry_id,
                 entry_config.type,
                 entry,
             )
@@ -97,7 +109,8 @@ class PgCopyProcessor(Processor):
                 serialize_row(self._base_entry_formatters, base_entry_values)
             )
 
-            entry_values = entry_config.extractor(id, entry)
+            extractor = extractors[entry_type]
+            entry_values = extractor(entry_id, entry)
             entry_file = self.entry_files[entry_type]
             entry_formatters = self._formatters[entry_type]
             entry_file.write(serialize_row(entry_formatters, entry_values))

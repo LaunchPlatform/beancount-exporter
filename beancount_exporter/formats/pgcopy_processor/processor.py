@@ -4,17 +4,19 @@ import pathlib
 import typing
 import uuid
 
+import orjson
 import pgcopy
 from beancount.core import data
 from beancount.loader import LoadError
+from beancount_data.data_types import EntryType
 
 from ..processor import Processor
 from .configs import ENTRY_TYPE_CONFIGS
 from .configs import EntryTypeConfig
 from .data_types import Table
-from .extractors import extract_entry
 from .tables import BASE_ENTRY_TABLE
 from .utils import compile_formatter
+from .utils import orjson_default
 from .utils import serialize_row
 
 
@@ -43,6 +45,23 @@ class PgCopyProcessor(Processor):
     def _compile_formatters(self, table: Table) -> list[typing.Callable]:
         return list(map(functools.partial(compile_formatter, self.encoding), table))
 
+    def _extract_entry(
+        self,
+        id: uuid.UUID,
+        entry_type: EntryType,
+        entry: data.Union,
+    ) -> tuple:
+        meta = entry.meta
+        filename = meta.get("filename")
+        if filename is not None:
+            meta["filename"] = self.strip_path(filename)
+        return (
+            id,
+            entry_type.value,
+            entry.date,
+            orjson.dumps(meta, default=orjson_default),
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.base_entry_file, *self.entry_files.values()
@@ -69,7 +88,7 @@ class PgCopyProcessor(Processor):
                 # XXX:
                 continue
             id = uuid.uuid4()
-            base_entry_values = extract_entry(
+            base_entry_values = self._extract_entry(
                 id,
                 entry_config.type,
                 entry,

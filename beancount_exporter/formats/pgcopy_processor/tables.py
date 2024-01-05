@@ -76,3 +76,14 @@ CLOSE_TABLE: Table = (
         typelem=0,
     ),
 )
+COMMODITY_TABLE: Table = (
+    ID_COLUMN,
+    Column(
+        attname="currency",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+)

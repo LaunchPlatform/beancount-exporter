@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from .db.base import Base
 from .db.close import Close
+from .db.commodity import Commodity
 from .db.entry import Entry
 from .db.open import Open
 from beancount_exporter.main import main
@@ -172,3 +173,37 @@ def test_close(
     assert close1.date == datetime.date(1970, 1, 5)
     assert close1.entry_type == EntryType.CLOSE
     assert close1.account == "Equity:Opening-Balances"
+
+
+def test_commodity(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 commodity BTC
+    1970-01-02 commodity ETH
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "commodity.bin", "COPY commodity FROM STDIN WITH (FORMAT BINARY)"
+    )
+    commodities = db.query(Commodity).order_by(Commodity.date).all()
+    assert len(commodities) == 2
+    assert db.query(Entry).count() == len(commodities)
+
+    commodity0 = commodities[0]
+    assert commodity0.date == datetime.date(1970, 1, 1)
+    assert commodity0.entry_type == EntryType.COMMODITY
+    assert commodity0.currency == "BTC"
+
+    commodity1 = commodities[1]
+    assert commodity1.date == datetime.date(1970, 1, 2)
+    assert commodity1.entry_type == EntryType.COMMODITY
+    assert commodity1.currency == "ETH"

@@ -433,4 +433,4 @@ def test_document(
     assert document0.date == datetime.date(1970, 1, 2)
     assert document0.entry_type == EntryType.DOCUMENT
     assert document0.account == "Assets:Checking"
-    assert document0.filename == str(invoice_pdf)
+    assert document0.filename == str(invoice_pdf.name)

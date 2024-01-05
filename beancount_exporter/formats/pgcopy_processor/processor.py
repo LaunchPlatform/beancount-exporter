@@ -126,7 +126,7 @@ class PgCopyProcessor(Processor):
         return (
             id,
             entry.account,
-            entry.filename,
+            self.strip_path(entry.filename),
             # pgcopy doesn't recognize frozenset
             # TODO: fix that issue in the upstream
             set(entry.tags),

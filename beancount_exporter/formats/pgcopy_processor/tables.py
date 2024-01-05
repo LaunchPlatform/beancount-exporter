@@ -9,7 +9,7 @@ ID_COLUMN = Column(
     not_null=True,
     typelem=0,
 )
-BASE_ENTRY_TABLE: Table = (
+ENTRY_BASE_TABLE: Table = (
     ID_COLUMN,
     Column(
         attname="entry_type",

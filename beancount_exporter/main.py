@@ -79,8 +79,8 @@ def main(
             output_dir_path = pathlib.Path(str(output_dir))
             processor = PgCopyProcessor(
                 base_path=pathlib.Path(str(base_path)),
-                base_entry_file=stack.enter_context(
-                    open(output_dir_path / "base_entry.pgcopy.bin", "wb")
+                entry_base_file=stack.enter_context(
+                    open(output_dir_path / "entry_base.pgcopy.bin", "wb")
                 ),
                 entry_files={
                     entry_type: stack.enter_context(

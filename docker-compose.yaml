@@ -1,0 +1,16 @@
+version: '3'
+services:
+  psql:
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_PASSWORD: ""
+      POSTGRES_USER: "beancount"
+      POSTGRES_DB: "beancount"
+    image: "postgres:13.1"
+    ports:
+    - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "beancount"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

@@ -14,7 +14,7 @@ from ..processor import Processor
 from .configs import ENTRY_TYPE_CONFIGS
 from .configs import EntryTypeConfig
 from .data_types import Table
-from .tables import BASE_ENTRY_TABLE
+from .tables import ENTRY_BASE_TABLE
 from .utils import compile_formatter
 from .utils import orjson_default
 from .utils import serialize_row
@@ -24,19 +24,19 @@ class PgCopyProcessor(Processor):
     def __init__(
         self,
         base_path: pathlib.Path,
-        base_entry_file: io.BytesIO,
+        entry_base_file: io.BytesIO,
         entry_files: dict[typing.Type, io.BytesIO],
-        base_entry_table: Table = BASE_ENTRY_TABLE,
+        entry_base_table: Table = ENTRY_BASE_TABLE,
         entry_configs: dict[typing.Type, EntryTypeConfig] | None = None,
         encoding: str = "utf8",
     ):
         super().__init__(base_path=base_path)
-        self.base_entry_file = base_entry_file
+        self.entry_base_file = entry_base_file
         self.entry_files = entry_files
-        self.base_entry_table = base_entry_table
+        self.entry_base_table = entry_base_table
         self.entry_configs = entry_configs or ENTRY_TYPE_CONFIGS
         self.encoding = encoding
-        self._base_entry_formatters = self._compile_formatters(BASE_ENTRY_TABLE)
+        self._entry_base_formatters = self._compile_formatters(ENTRY_BASE_TABLE)
         self._formatters = {
             key: self._compile_formatters(config.table)
             for key, config in self.entry_configs.items()
@@ -72,7 +72,7 @@ class PgCopyProcessor(Processor):
 
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
-        return self.base_entry_file, *self.entry_files.values()
+        return self.entry_base_file, *self.entry_files.values()
 
     def start(self):
         for pgcopy_file in self.all_files:
@@ -100,13 +100,13 @@ class PgCopyProcessor(Processor):
                 # XXX:
                 continue
             entry_id = uuid.uuid4()
-            base_entry_values = self._extract_entry(
+            entry_base_values = self._extract_entry(
                 entry_id,
                 entry_config.type,
                 entry,
             )
-            self.base_entry_file.write(
-                serialize_row(self._base_entry_formatters, base_entry_values)
+            self.entry_base_file.write(
+                serialize_row(self._entry_base_formatters, entry_base_values)
             )
 
             extractor = extractors[entry_type]

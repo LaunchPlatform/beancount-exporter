@@ -7,6 +7,7 @@ from .data_types import EntryTypeConfig
 from .tables import BALANCE_TABLE
 from .tables import CLOSE_TABLE
 from .tables import COMMODITY_TABLE
+from .tables import CUSTOM_TABLE
 from .tables import DOCUMENT_TABLE
 from .tables import EVENT_TABLE
 from .tables import NOTE_TABLE
@@ -51,5 +52,9 @@ ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Document: EntryTypeConfig(
         type=EntryType.DOCUMENT,
         table=DOCUMENT_TABLE,
+    ),
+    data.Custom: EntryTypeConfig(
+        type=EntryType.CUSTOM,
+        table=CUSTOM_TABLE,
     ),
 }

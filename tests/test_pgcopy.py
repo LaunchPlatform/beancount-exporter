@@ -17,6 +17,7 @@ from .db.balance import Balance
 from .db.base import Base
 from .db.close import Close
 from .db.commodity import Commodity
+from .db.custom import Custom
 from .db.document import Document
 from .db.entry import Entry
 from .db.event import Event
@@ -73,6 +74,7 @@ def export_entries(tmp_path: pathlib.Path) -> ExportEntriesFunc:
                 "--output-dir",
                 str(output_dir),
             ],
+            catch_exceptions=False,
         )
         assert result.exit_code == 0
         assert not result.exception
@@ -434,3 +436,38 @@ def test_document(
     assert document0.entry_type == EntryType.DOCUMENT
     assert document0.account == "Assets:Checking"
     assert document0.filename == str(invoice_pdf.name)
+
+
+def test_custom(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        f"""\
+    1970-01-01 custom "string val" 123.45 USD TRUE FALSE 2022-04-01 Assets:Bank "string"
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "custom.bin", "COPY custom FROM STDIN WITH (FORMAT BINARY)"
+    )
+    customs = db.query(Custom).order_by(Custom.date).all()
+    assert len(customs) == 1
+
+    custom0 = customs[0]
+    assert custom0.date == datetime.date(1970, 1, 1)
+    assert custom0.entry_type == EntryType.CUSTOM
+    assert custom0.type == "string val"
+    assert custom0.values == [
+        '{"number": "123.45", "currency": "USD"}',
+        "true",
+        "false",
+        "2022-04-01",
+        "Assets:Bank",
+        '"string"',
+    ]

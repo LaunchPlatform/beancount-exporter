@@ -16,6 +16,7 @@ from .configs import EntryTypeConfig
 from .data_types import Table
 from .tables import ENTRY_BASE_TABLE
 from .utils import compile_formatter
+from .utils import convert_custom_value
 from .utils import orjson_default
 from .utils import serialize_row
 
@@ -133,6 +134,13 @@ class PgCopyProcessor(Processor):
             set(entry.links),
         )
 
+    def _extract_custom(self, id: uuid.UUID, entry: data.Custom) -> tuple:
+        return (
+            id,
+            entry.type,
+            list(map(convert_custom_value, entry.values)),
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.entry_base_file, *self.entry_files.values()
@@ -163,6 +171,7 @@ class PgCopyProcessor(Processor):
             data.Event: self._extract_event,
             data.Price: self._extract_price,
             data.Document: self._extract_document,
+            data.Custom: self._extract_custom,
         }
         # TODO: to improve performance even more, maybe we can have multiprocessing
         #       breaking down entries into groups first and process them in different

@@ -177,3 +177,22 @@ NOTE_TABLE: Table = (
         typelem=0,
     ),
 )
+EVENT_TABLE: Table = (
+    ID_COLUMN,
+    Column(
+        attname="type",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="description",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+)

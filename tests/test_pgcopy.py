@@ -18,6 +18,7 @@ from .db.base import Base
 from .db.close import Close
 from .db.commodity import Commodity
 from .db.entry import Entry
+from .db.event import Event
 from .db.note import Note
 from .db.open import Open
 from .db.pad import Pad
@@ -331,3 +332,36 @@ def test_note(
     assert note1.entry_type == EntryType.NOTE
     assert note1.account == "Income:Job"
     assert note1.comment == "MOCK NOTE 1"
+
+
+def test_event(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 event "location" "Paris, France"
+    1970-01-02 event "country" "US"
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(output_dir / "event.bin", "COPY event FROM STDIN WITH (FORMAT BINARY)")
+    events = db.query(Event).order_by(Event.date).all()
+    assert len(events) == 2
+
+    event0 = events[0]
+    assert event0.date == datetime.date(1970, 1, 1)
+    assert event0.entry_type == EntryType.EVENT
+    assert event0.type == "location"
+    assert event0.description == "Paris, France"
+
+    event1 = events[1]
+    assert event1.date == datetime.date(1970, 1, 2)
+    assert event1.entry_type == EntryType.EVENT
+    assert event1.type == "country"
+    assert event1.description == "US"

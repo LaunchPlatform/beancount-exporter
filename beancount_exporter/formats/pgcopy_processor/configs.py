@@ -7,6 +7,7 @@ from .data_types import EntryTypeConfig
 from .tables import BALANCE_TABLE
 from .tables import CLOSE_TABLE
 from .tables import COMMODITY_TABLE
+from .tables import EVENT_TABLE
 from .tables import NOTE_TABLE
 from .tables import OPEN_TABLE
 from .tables import PAD_TABLE
@@ -36,5 +37,9 @@ ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Note: EntryTypeConfig(
         type=EntryType.NOTE,
         table=NOTE_TABLE,
+    ),
+    data.Event: EntryTypeConfig(
+        type=EntryType.EVENT,
+        table=EVENT_TABLE,
     ),
 }

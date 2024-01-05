@@ -107,6 +107,13 @@ class PgCopyProcessor(Processor):
             entry.comment,
         )
 
+    def _extract_event(self, id: uuid.UUID, entry: data.Event) -> tuple:
+        return (
+            id,
+            entry.type,
+            entry.description,
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.entry_base_file, *self.entry_files.values()
@@ -134,6 +141,7 @@ class PgCopyProcessor(Processor):
             data.Balance: self._extract_balance,
             # TODO: txn
             data.Note: self._extract_note,
+            data.Event: self._extract_event,
         }
         # TODO: to improve performance even more, maybe we can have multiprocessing
         #       breaking down entries into groups first and process them in different

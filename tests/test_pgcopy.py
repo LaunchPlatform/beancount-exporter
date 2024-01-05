@@ -1,4 +1,5 @@
 import datetime
+import decimal
 import os
 import pathlib
 import textwrap
@@ -12,6 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from .db.balance import Balance
 from .db.base import Base
 from .db.close import Close
 from .db.commodity import Commodity
@@ -237,3 +239,55 @@ def test_pad(
     assert pad0.entry_type == EntryType.PAD
     assert pad0.account == "Assets:Checking"
     assert pad0.source_account == "Equity:Opening-Balances"
+
+
+def test_balance(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Checking
+    1970-01-01 open Income:Job
+    1970-01-01 open Equity:Opening-Balances
+    2023-02-10 pad Assets:Checking Equity:Opening-Balances
+    2023-03-22 balance Assets:Checking 123.45 USD
+    2023-03-23 * "Salary"
+        Assets:Checking 500.0 USD
+        Income:Job
+    2023-03-24 balance Assets:Checking 623.44 ~ 0.05 USD
+    
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "balance.bin", "COPY balance FROM STDIN WITH (FORMAT BINARY)"
+    )
+    balances = db.query(Balance).order_by(Balance.date).all()
+    assert len(balances) == 2
+
+    balance0 = balances[0]
+    assert balance0.date == datetime.date(2023, 3, 22)
+    assert balance0.entry_type == EntryType.BALANCE
+    assert balance0.account == "Assets:Checking"
+    assert balance0.amount_number == decimal.Decimal("123.45")
+    assert balance0.amount_currency == "USD"
+    assert balance0.tolerance is None
+    assert balance0.diff_number is None
+    assert balance0.diff_currency is None
+
+    balance1 = balances[1]
+    assert balance1.date == datetime.date(2023, 3, 24)
+    assert balance1.entry_type == EntryType.BALANCE
+    assert balance1.account == "Assets:Checking"
+    assert balance1.amount_number == decimal.Decimal("623.44")
+    assert balance1.amount_currency == "USD"
+    assert balance1.tolerance == decimal.Decimal("0.05")
+    # TODO: not sure to make this number present
+    assert balance1.diff_number is None
+    assert balance1.diff_currency is None

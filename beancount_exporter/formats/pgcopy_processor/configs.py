@@ -4,6 +4,7 @@ from beancount.core import data
 from beancount_data.data_types import EntryType
 
 from .data_types import EntryTypeConfig
+from .tables import BALANCE_TABLE
 from .tables import CLOSE_TABLE
 from .tables import COMMODITY_TABLE
 from .tables import OPEN_TABLE
@@ -25,5 +26,9 @@ ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Pad: EntryTypeConfig(
         type=EntryType.PAD,
         table=PAD_TABLE,
+    ),
+    data.Balance: EntryTypeConfig(
+        type=EntryType.BALANCE,
+        table=BALANCE_TABLE,
     ),
 }

@@ -122,6 +122,17 @@ class PgCopyProcessor(Processor):
             entry.amount.currency,
         )
 
+    def _extract_document(self, id: uuid.UUID, entry: data.Document) -> tuple:
+        return (
+            id,
+            entry.account,
+            entry.filename,
+            # pgcopy doesn't recognize frozenset
+            # TODO: fix that issue in the upstream
+            set(entry.tags),
+            set(entry.links),
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.entry_base_file, *self.entry_files.values()
@@ -151,6 +162,7 @@ class PgCopyProcessor(Processor):
             data.Note: self._extract_note,
             data.Event: self._extract_event,
             data.Price: self._extract_price,
+            data.Document: self._extract_document,
         }
         # TODO: to improve performance even more, maybe we can have multiprocessing
         #       breaking down entries into groups first and process them in different

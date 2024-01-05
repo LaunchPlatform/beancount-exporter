@@ -17,6 +17,7 @@ from .db.balance import Balance
 from .db.base import Base
 from .db.close import Close
 from .db.commodity import Commodity
+from .db.document import Document
 from .db.entry import Entry
 from .db.event import Event
 from .db.note import Note
@@ -401,3 +402,35 @@ def test_price(
     assert price1.currency == "ETH"
     assert price1.amount_number == decimal.Decimal("200.12")
     assert price1.amount_currency == "USD"
+
+
+def test_document(
+    db: Session,
+    tmp_path: pathlib.Path,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    invoice_pdf = tmp_path / "invoice.pdf"
+    invoice_pdf.write_text("")
+    bean_file_path = make_beanfile(
+        f"""\
+    1970-01-01 open Assets:Checking
+    1970-01-02 document Assets:Checking "{invoice_pdf.name}"
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "document.bin", "COPY document FROM STDIN WITH (FORMAT BINARY)"
+    )
+    documents = db.query(Document).order_by(Document.date).all()
+    assert len(documents) == 1
+
+    document0 = documents[0]
+    assert document0.date == datetime.date(1970, 1, 2)
+    assert document0.entry_type == EntryType.DOCUMENT
+    assert document0.account == "Assets:Checking"
+    assert document0.filename == str(invoice_pdf)

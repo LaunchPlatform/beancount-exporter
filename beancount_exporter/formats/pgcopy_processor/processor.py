@@ -15,6 +15,7 @@ from .configs import ENTRY_TYPE_CONFIGS
 from .configs import EntryTypeConfig
 from .data_types import Table
 from .tables import ENTRY_BASE_TABLE
+from .tables import POSTING_TABLE
 from .utils import compile_formatter
 from .utils import convert_custom_value
 from .utils import orjson_default
@@ -26,18 +27,23 @@ class PgCopyProcessor(Processor):
         self,
         base_path: pathlib.Path,
         entry_base_file: io.BytesIO,
+        posting_file: io.BytesIO,
         entry_files: dict[typing.Type, io.BytesIO],
         entry_base_table: Table = ENTRY_BASE_TABLE,
+        posting_table: Table = POSTING_TABLE,
         entry_configs: dict[typing.Type, EntryTypeConfig] | None = None,
         encoding: str = "utf8",
     ):
         super().__init__(base_path=base_path)
         self.entry_base_file = entry_base_file
+        self.posting_file = posting_file
         self.entry_files = entry_files
         self.entry_base_table = entry_base_table
+        self.posting_table = posting_table
         self.entry_configs = entry_configs or ENTRY_TYPE_CONFIGS
         self.encoding = encoding
-        self._entry_base_formatters = self._compile_formatters(ENTRY_BASE_TABLE)
+        self._entry_base_formatters = self._compile_formatters(self.entry_base_table)
+        self._posting_formatters = self._compile_formatters(self.posting_table)
         self._formatters = {
             key: self._compile_formatters(config.table)
             for key, config in self.entry_configs.items()
@@ -155,7 +161,7 @@ class PgCopyProcessor(Processor):
 
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
-        return self.entry_base_file, *self.entry_files.values()
+        return self.entry_base_file, self.posting_file, *self.entry_files.values()
 
     def start(self):
         for pgcopy_file in self.all_files:

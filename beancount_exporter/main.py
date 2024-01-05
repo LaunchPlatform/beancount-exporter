@@ -82,6 +82,9 @@ def main(
                 entry_base_file=stack.enter_context(
                     open(output_dir_path / "entry_base.bin", "wb")
                 ),
+                posting_file=stack.enter_context(
+                    open(output_dir_path / "posting.bin", "wb")
+                ),
                 entry_files={
                     entry_type: stack.enter_context(
                         open(output_dir_path / f"{config.type.value}.bin", "wb")

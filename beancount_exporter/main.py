@@ -1,3 +1,5 @@
+import contextlib
+import enum
 import logging
 import os
 import pathlib
@@ -5,11 +7,17 @@ import sys
 
 import click
 from beancount import loader
-from beancount.core import data
 from beancount.ops import validation
 
 from .formats.json_processor import JsonProcessor
 from .formats.pgcopy_processor import PgCopyProcessor
+from .formats.pgcopy_processor.configs import ENTRY_TYPE_CONFIGS
+
+
+@enum.unique
+class ExportFormat(enum.StrEnum):
+    JSON = "JSON"
+    PGCOPY = "PGCOPY"
 
 
 @click.command()
@@ -20,6 +28,20 @@ from .formats.pgcopy_processor import PgCopyProcessor
     default=os.getcwd(),
     envvar="BASE_PATH",
     help="Base path for stripping the file paths in the output",
+)
+@click.option(
+    "-f",
+    "--format",
+    type=click.Choice(ExportFormat),
+    default=ExportFormat.JSON,
+    help="Output format type",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False),
+    default=os.getcwd(),
+    envvar="OUTPUT_DIR",
+    help="Path for file-based output",
 )
 @click.option(
     "--disable-path-stripping", is_flag=True, help="Disable stripping file path"
@@ -34,6 +56,8 @@ from .formats.pgcopy_processor import PgCopyProcessor
 def main(
     filename: str,
     base_path: click.Path,
+    output_dir: click.Path,
+    format: ExportFormat,
     disable_path_stripping: bool,
     disable_options: bool,
     disable_validations: bool,
@@ -48,17 +72,23 @@ def main(
         extra_validations=validation.HARDCORE_VALIDATIONS,
     )
 
-    with (
-        open("entry.pgcopy.bin", "wb") as entry_file,
-        open("open.pgcopy.bin", "wb") as open_file,
-    ):
-        processor = PgCopyProcessor(
-            base_path=pathlib.Path(str(base_path)),
-            base_entry_file=entry_file,
-            entry_files={
-                data.Open: open_file,
-            },
-        )
+    with contextlib.ExitStack() as stack:
+        if format == ExportFormat.JSON:
+            processor = JsonProcessor(base_path=pathlib.Path(str(base_path)))
+        elif format == ExportFormat.PGCOPY:
+            output_dir_path = pathlib.Path(str(output_dir))
+            processor = PgCopyProcessor(
+                base_path=pathlib.Path(str(base_path)),
+                base_entry_file=stack.enter_context(
+                    open(output_dir_path / "base_entry.pgcopy.bin", "wb")
+                ),
+                entry_files={
+                    entry_type: stack.enter_context(
+                        open(output_dir_path / f"{config.type.value}.pgcopy.bin", "wb")
+                    )
+                    for entry_type, config in ENTRY_TYPE_CONFIGS.items()
+                },
+            )
         processor.start()
         options = options_map.copy()
         for key, value in options.items():

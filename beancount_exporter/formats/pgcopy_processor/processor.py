@@ -57,7 +57,7 @@ class PgCopyProcessor(Processor):
             meta["filename"] = self.strip_path(filename)
         return (
             id,
-            entry_type.value,
+            entry_type.name,
             entry.date,
             orjson.dumps(meta, default=orjson_default),
         )

@@ -18,6 +18,7 @@ from .db.base import Base
 from .db.close import Close
 from .db.commodity import Commodity
 from .db.entry import Entry
+from .db.note import Note
 from .db.open import Open
 from .db.pad import Pad
 from beancount_exporter.main import main
@@ -291,3 +292,42 @@ def test_balance(
     # TODO: not sure to make this number present
     assert balance1.diff_number is None
     assert balance1.diff_currency is None
+
+
+# TODO: txn
+
+
+def test_note(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Checking
+    1970-01-01 open Income:Job
+    1970-01-01 open Equity:Opening-Balances
+    1970-01-02 note Assets:Checking "MOCK NOTE 0"
+    1970-01-03 note Income:Job "MOCK NOTE 1"
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(output_dir / "note.bin", "COPY note FROM STDIN WITH (FORMAT BINARY)")
+    notes = db.query(Note).order_by(Note.date).all()
+    assert len(notes) == 2
+
+    note0 = notes[0]
+    assert note0.date == datetime.date(1970, 1, 2)
+    assert note0.entry_type == EntryType.NOTE
+    assert note0.account == "Assets:Checking"
+    assert note0.comment == "MOCK NOTE 0"
+
+    note1 = notes[1]
+    assert note1.date == datetime.date(1970, 1, 3)
+    assert note1.entry_type == EntryType.NOTE
+    assert note1.account == "Income:Job"
+    assert note1.comment == "MOCK NOTE 1"

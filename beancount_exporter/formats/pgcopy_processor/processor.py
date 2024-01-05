@@ -100,6 +100,13 @@ class PgCopyProcessor(Processor):
             entry.diff_amount.currency if entry.diff_amount is not None else None,
         )
 
+    def _extract_note(self, id: uuid.UUID, entry: data.Note) -> tuple:
+        return (
+            id,
+            entry.account,
+            entry.comment,
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.entry_base_file, *self.entry_files.values()
@@ -125,6 +132,8 @@ class PgCopyProcessor(Processor):
             data.Commodity: self._extract_commodity,
             data.Pad: self._extract_pad,
             data.Balance: self._extract_balance,
+            # TODO: txn
+            data.Note: self._extract_note,
         }
         # TODO: to improve performance even more, maybe we can have multiprocessing
         #       breaking down entries into groups first and process them in different

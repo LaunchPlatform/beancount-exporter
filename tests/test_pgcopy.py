@@ -25,6 +25,7 @@ from .db.note import Note
 from .db.open import Open
 from .db.pad import Pad
 from .db.price import Price
+from .db.transaction import Transaction
 from beancount_exporter.main import main
 
 MakeBeanfileFunc = typing.Callable[[str], pathlib.Path]
@@ -299,7 +300,38 @@ def test_balance(
     assert balance1.diff_currency is None
 
 
-# TODO: txn
+def test_transaction(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Cash
+    1970-01-01 open Expenses:Grocery
+    1970-01-02 * "Buy milk" "Wholefood"
+        Assets:Cash     -5.99 USD
+        Expenses:Grocery
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "transaction.bin",
+        "COPY transaction FROM STDIN WITH (FORMAT BINARY)",
+    )
+    transactions = db.query(Transaction).order_by(Transaction.date).all()
+    assert len(transactions) == 1
+
+    transaction0 = transactions[0]
+    assert transaction0.date == datetime.date(1970, 1, 2)
+    assert transaction0.entry_type == EntryType.TRANSACTION
+    assert transaction0.flag == "*"
+    assert transaction0.narration == "Wholefood"
+    assert transaction0.payee == "Buy milk"
 
 
 def test_note(

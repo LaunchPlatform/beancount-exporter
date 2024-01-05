@@ -157,7 +157,53 @@ BALANCE_TABLE: Table = (
         typelem=0,
     ),
 )
-# TODO: txn
+TRANSACTION_TABLE: Table = (
+    ID_COLUMN,
+    Column(
+        attname="flag",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="payee",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=False,
+        typelem=0,
+    ),
+    Column(
+        attname="narration",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="tags",
+        type_category="A",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        # varchar's type oid is 1043
+        # ref: https://github.com/postgres/postgres/blob/14dd0f27d7cd56ffae9ecdbe324965073d01a9ff/src/include/catalog/pg_type.dat#L280-L286
+        typelem=1043,
+    ),
+    Column(
+        attname="links",
+        type_category="A",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        # varchar's type oid is 1043
+        # ref: https://github.com/postgres/postgres/blob/14dd0f27d7cd56ffae9ecdbe324965073d01a9ff/src/include/catalog/pg_type.dat#L280-L286
+        typelem=1043,
+    ),
+)
 NOTE_TABLE: Table = (
     ID_COLUMN,
     Column(

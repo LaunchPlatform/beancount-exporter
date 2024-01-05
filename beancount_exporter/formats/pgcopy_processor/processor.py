@@ -101,6 +101,18 @@ class PgCopyProcessor(Processor):
             entry.diff_amount.currency if entry.diff_amount is not None else None,
         )
 
+    def _extract_transaction(self, id: uuid.UUID, entry: data.Transaction) -> tuple:
+        return (
+            id,
+            entry.flag,
+            entry.payee,
+            entry.narration,
+            # pgcopy doesn't recognize frozenset
+            # TODO: fix that issue in the upstream
+            set(entry.tags),
+            set(entry.links),
+        )
+
     def _extract_note(self, id: uuid.UUID, entry: data.Note) -> tuple:
         return (
             id,
@@ -166,7 +178,7 @@ class PgCopyProcessor(Processor):
             data.Commodity: self._extract_commodity,
             data.Pad: self._extract_pad,
             data.Balance: self._extract_balance,
-            # TODO: txn
+            data.Transaction: self._extract_transaction,
             data.Note: self._extract_note,
             data.Event: self._extract_event,
             data.Price: self._extract_price,
@@ -178,10 +190,7 @@ class PgCopyProcessor(Processor):
         #       thread / processors
         for entry in entries:
             entry_type = type(entry)
-            entry_config = self.entry_configs.get(entry_type)
-            if entry_config is None:
-                # XXX:
-                continue
+            entry_config = self.entry_configs[entry_type]
             entry_id = uuid.uuid4()
             entry_base_values = self._extract_entry(
                 entry_id,
@@ -197,3 +206,5 @@ class PgCopyProcessor(Processor):
             entry_file = self.entry_files[entry_type]
             entry_formatters = self._formatters[entry_type]
             entry_file.write(serialize_row(entry_formatters, entry_values))
+
+            # TODO: process transaction postings

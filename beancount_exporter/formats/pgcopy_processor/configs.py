@@ -14,6 +14,7 @@ from .tables import NOTE_TABLE
 from .tables import OPEN_TABLE
 from .tables import PAD_TABLE
 from .tables import PRICE_TABLE
+from .tables import TRANSACTION_TABLE
 
 ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Open: EntryTypeConfig(
@@ -36,7 +37,10 @@ ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
         type=EntryType.BALANCE,
         table=BALANCE_TABLE,
     ),
-    # TODO: txn
+    data.Transaction: EntryTypeConfig(
+        type=EntryType.TRANSACTION,
+        table=TRANSACTION_TABLE,
+    ),
     data.Note: EntryTypeConfig(
         type=EntryType.NOTE,
         table=NOTE_TABLE,

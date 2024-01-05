@@ -1,9 +1,12 @@
+import datetime
 import os
 import pathlib
 import textwrap
 import typing
 
 import pytest
+from beancount_data.data_types import Booking
+from beancount_data.data_types import EntryType
 from click.testing import CliRunner
 from sqlalchemy import create_engine
 from sqlalchemy import Engine
@@ -93,7 +96,9 @@ def test_opens(
     bean_file_path = make_beanfile(
         """\
     1970-01-01 open Assets:Checking USD,TWD
-    1970-01-01 open Equity:Opening-Balances
+    1970-01-02 open Assets:WindFalls BTC
+    1970-01-03 open Assets:Stocks:Tesla TSLA "FIFO"
+    1970-01-04 open Equity:Opening-Balances
     """
     )
     output_dir = export_entries(bean_file_path)
@@ -101,6 +106,34 @@ def test_opens(
         output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
     )
     import_table(output_dir / "open.bin", "COPY open FROM STDIN WITH (FORMAT BINARY)")
-
-    opens = db.query(Open).all()
+    opens = db.query(Open).order_by(Open.date).all()
+    assert len(opens) == 4
     assert db.query(Entry).count() == len(opens)
+
+    open0 = opens[0]
+    assert open0.date == datetime.date(1970, 1, 1)
+    assert open0.entry_type == EntryType.OPEN
+    assert open0.account == "Assets:Checking"
+    assert frozenset(open0.currencies) == frozenset(["USD", "TWD"])
+    assert open0.booking is None
+
+    open1 = opens[1]
+    assert open1.date == datetime.date(1970, 1, 2)
+    assert open1.entry_type == EntryType.OPEN
+    assert open1.account == "Assets:WindFalls"
+    assert frozenset(open1.currencies) == frozenset(["BTC"])
+    assert open1.booking is None
+
+    open2 = opens[2]
+    assert open2.date == datetime.date(1970, 1, 3)
+    assert open2.entry_type == EntryType.OPEN
+    assert open2.account == "Assets:Stocks:Tesla"
+    assert frozenset(open2.currencies) == frozenset(["TSLA"])
+    assert open2.booking == Booking.FIFO
+
+    open3 = opens[3]
+    assert open3.date == datetime.date(1970, 1, 4)
+    assert open3.entry_type == EntryType.OPEN
+    assert open3.account == "Equity:Opening-Balances"
+    assert open3.currencies is None
+    assert open3.booking is None

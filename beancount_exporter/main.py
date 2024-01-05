@@ -80,11 +80,11 @@ def main(
             processor = PgCopyProcessor(
                 base_path=pathlib.Path(str(base_path)),
                 entry_base_file=stack.enter_context(
-                    open(output_dir_path / "entry_base.pgcopy.bin", "wb")
+                    open(output_dir_path / "entry_base.bin", "wb")
                 ),
                 entry_files={
                     entry_type: stack.enter_context(
-                        open(output_dir_path / f"{config.type.value}.pgcopy.bin", "wb")
+                        open(output_dir_path / f"{config.type.value}.bin", "wb")
                     )
                     for entry_type, config in ENTRY_TYPE_CONFIGS.items()
                 },

@@ -70,6 +70,12 @@ class PgCopyProcessor(Processor):
             entry.booking.value if entry.booking is not None else None,
         )
 
+    def _extract_close(self, id: uuid.UUID, entry: data.Open) -> tuple:
+        return (
+            id,
+            entry.account,
+        )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.entry_base_file, *self.entry_files.values()
@@ -89,7 +95,10 @@ class PgCopyProcessor(Processor):
         pass
 
     def process_entries(self, entries: data.Entries):
-        extractors = {data.Open: self._extract_open}
+        extractors = {
+            data.Open: self._extract_open,
+            data.Close: self._extract_close,
+        }
         # TODO: to improve performance even more, maybe we can have multiprocessing
         #       breaking down entries into groups first and process them in different
         #       thread / processors

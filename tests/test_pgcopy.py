@@ -13,6 +13,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from .db.base import Base
+from .db.close import Close
 from .db.entry import Entry
 from .db.open import Open
 from beancount_exporter.main import main
@@ -137,3 +138,37 @@ def test_opens(
     assert open3.account == "Equity:Opening-Balances"
     assert open3.currencies is None
     assert open3.booking is None
+
+
+def test_close(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Checking
+    1970-01-02 open Assets:WindFalls
+    1970-01-03 open Equity:Opening-Balances
+    1970-01-04 close Assets:Checking
+    1970-01-05 close Equity:Opening-Balances
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(output_dir / "close.bin", "COPY close FROM STDIN WITH (FORMAT BINARY)")
+    closes = db.query(Close).order_by(Close.date).all()
+    assert len(closes) == 2
+
+    close0 = closes[0]
+    assert close0.date == datetime.date(1970, 1, 4)
+    assert close0.entry_type == EntryType.CLOSE
+    assert close0.account == "Assets:Checking"
+
+    close1 = closes[1]
+    assert close1.date == datetime.date(1970, 1, 5)
+    assert close1.entry_type == EntryType.CLOSE
+    assert close1.account == "Equity:Opening-Balances"

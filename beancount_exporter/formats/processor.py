@@ -14,6 +14,12 @@ class Processor:
     def strip_path(self, path: str | list[str]) -> str | list[str]:
         return strip_base_path(path, base_path=self.base_path)
 
+    def start(self):
+        raise NotImplementedError()
+
+    def stop(self):
+        raise NotImplementedError()
+
     def process_options(self, options: dict[str, typing.Any]):
         raise NotImplementedError()
 

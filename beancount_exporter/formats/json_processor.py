@@ -1,6 +1,7 @@
 import decimal
 import enum
 import json
+import sys
 import typing
 
 from beancount.core import data
@@ -62,6 +63,12 @@ def convert_custom_value(
 
 
 class JsonProcessor(Processor):
+    def start(self):
+        pass
+
+    def stop(self):
+        sys.stdout.flush()
+
     def process_options(self, options: dict[str, typing.Any]):
         print(json.dumps(options, cls=OptionEncoder))
         print()

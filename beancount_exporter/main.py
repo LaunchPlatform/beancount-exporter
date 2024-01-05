@@ -5,9 +5,11 @@ import sys
 
 import click
 from beancount import loader
+from beancount.core import data
 from beancount.ops import validation
 
 from .formats.json_processor import JsonProcessor
+from .formats.pgcopy_processor import PgCopyProcessor
 
 
 @click.command()
@@ -46,21 +48,32 @@ def main(
         extra_validations=validation.HARDCORE_VALIDATIONS,
     )
 
-    processor = JsonProcessor(base_path=pathlib.Path(str(base_path)))
-    options = options_map.copy()
-    for key, value in options.items():
-        if not disable_path_stripping:
-            if key in {"filename", "include"}:
-                options[key] = processor.strip_path(value)
-    del options["dcontext"]
-    if not disable_options:
-        processor.process_options(options)
-    if not disable_validations:
-        processor.process_errors(errors)
-    if not disable_entries:
-        processor.process_entries(entries)
+    with (
+        open("entry.pgcopy.bin", "wb") as entry_file,
+        open("open.pgcopy.bin", "wb") as open_file,
+    ):
+        processor = PgCopyProcessor(
+            base_path=pathlib.Path(str(base_path)),
+            base_entry_file=entry_file,
+            entry_files={
+                data.Open: open_file,
+            },
+        )
+        processor.start()
+        options = options_map.copy()
+        for key, value in options.items():
+            if not disable_path_stripping:
+                if key in {"filename", "include"}:
+                    options[key] = processor.strip_path(value)
+        del options["dcontext"]
+        if not disable_options:
+            processor.process_options(options)
+        if not disable_validations:
+            processor.process_errors(errors)
+        if not disable_entries:
+            processor.process_entries(entries)
+        processor.stop()
 
-    sys.stdout.flush()
     exit(1 if errors else 0)
 
 

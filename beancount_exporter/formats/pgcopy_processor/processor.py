@@ -159,6 +159,49 @@ class PgCopyProcessor(Processor):
             list(map(convert_custom_value, entry.values)),
         )
 
+    def _extract_posting(
+        self, id: uuid.UUID, transaction_id: uuid.UUID, posting: data.Posting
+    ) -> tuple:
+        if isinstance(posting.cost, data.CostSpec):
+            cost_spec = (
+                posting.cost.number_per,
+                posting.cost.number_total,
+                posting.cost.merge,
+            )
+        else:
+            cost_spec = (None, None, None)
+
+        meta = posting.meta
+        if posting.meta is not None:
+            meta = meta.copy()
+            meta["filename"] = self.strip_path(meta["filename"])
+
+        return (
+            id,
+            transaction_id,
+            posting.account,
+            posting.units.number,
+            posting.units.currency,
+            posting.price.number if posting.price is not None else None,
+            posting.price.currency if posting.price is not None else None,
+            posting.cost.number if isinstance(posting.cost, data.Cost) else None,
+            posting.cost.currency if posting.cost is not None else None,
+            posting.cost.date if posting.cost is not None else None,
+            posting.cost.label if posting.cost is not None else None,
+            *cost_spec,
+            posting.flag,
+            orjson.dumps(meta, default=orjson_default),
+        )
+
+    def _process_transaction(self, transaction_id: uuid.UUID, entry: data.Transaction):
+        for posting in entry.postings:
+            posting_values = self._extract_posting(
+                uuid.uuid4(), transaction_id, posting
+            )
+            self.posting_file.write(
+                serialize_row(self._posting_formatters, posting_values)
+            )
+
     @property
     def all_files(self) -> tuple[io.BytesIO, ...]:
         return self.entry_base_file, self.posting_file, *self.entry_files.values()
@@ -212,5 +255,5 @@ class PgCopyProcessor(Processor):
             entry_file = self.entry_files[entry_type]
             entry_formatters = self._formatters[entry_type]
             entry_file.write(serialize_row(entry_formatters, entry_values))
-
-            # TODO: process transaction postings
+            if entry_type is data.Transaction:
+                self._process_transaction(entry_id, entry)

@@ -24,6 +24,7 @@ from .db.event import Event
 from .db.note import Note
 from .db.open import Open
 from .db.pad import Pad
+from .db.posting import Posting
 from .db.price import Price
 from .db.transaction import Transaction
 from beancount_exporter.main import main
@@ -323,6 +324,10 @@ def test_transaction(
         output_dir / "transaction.bin",
         "COPY transaction FROM STDIN WITH (FORMAT BINARY)",
     )
+    import_table(
+        output_dir / "posting.bin",
+        "COPY posting FROM STDIN WITH (FORMAT BINARY)",
+    )
     transactions = db.query(Transaction).order_by(Transaction.date).all()
     assert len(transactions) == 1
 
@@ -332,6 +337,74 @@ def test_transaction(
     assert transaction0.flag == "*"
     assert transaction0.narration == "Wholefood"
     assert transaction0.payee == "Buy milk"
+
+    assert len(transaction0.postings) == 2
+    assert len(transaction0.postings) == db.query(Posting).count()
+    postings = db.query(Posting).order_by(Posting.account).all()
+
+    posting0 = postings[0]
+    assert posting0.account == "Assets:Cash"
+    assert posting0.units_number == decimal.Decimal("-5.99")
+    assert posting0.units_currency == "USD"
+
+    posting1 = postings[1]
+    assert posting1.account == "Expenses:Grocery"
+    assert posting1.units_number == decimal.Decimal("5.99")
+    assert posting1.units_currency == "USD"
+
+
+def test_transaction_with_price(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Cash
+    1970-01-01 open Expenses:Grocery
+    1970-01-02 * "Buy milk" "Wholefood"
+        Assets:Cash     -1.0  BTC @ 123.45 USD
+        Expenses:Grocery
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "transaction.bin",
+        "COPY transaction FROM STDIN WITH (FORMAT BINARY)",
+    )
+    import_table(
+        output_dir / "posting.bin",
+        "COPY posting FROM STDIN WITH (FORMAT BINARY)",
+    )
+    transactions = db.query(Transaction).order_by(Transaction.date).all()
+    assert len(transactions) == 1
+
+    transaction0 = transactions[0]
+    assert transaction0.date == datetime.date(1970, 1, 2)
+    assert transaction0.entry_type == EntryType.TRANSACTION
+    assert transaction0.flag == "*"
+    assert transaction0.narration == "Wholefood"
+    assert transaction0.payee == "Buy milk"
+
+    assert len(transaction0.postings) == 2
+    assert len(transaction0.postings) == db.query(Posting).count()
+    postings = db.query(Posting).order_by(Posting.account).all()
+
+    posting0 = postings[0]
+    assert posting0.account == "Assets:Cash"
+    assert posting0.units_number == decimal.Decimal("-1.0")
+    assert posting0.units_currency == "BTC"
+    assert posting0.price_number == decimal.Decimal("123.45")
+    assert posting0.price_currency == "USD"
+
+    posting1 = postings[1]
+    assert posting1.account == "Expenses:Grocery"
+    assert posting1.units_number == decimal.Decimal("123.45")
+    assert posting1.units_currency == "USD"
 
 
 def test_note(

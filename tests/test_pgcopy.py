@@ -17,6 +17,7 @@ from .db.close import Close
 from .db.commodity import Commodity
 from .db.entry import Entry
 from .db.open import Open
+from .db.pad import Pad
 from beancount_exporter.main import main
 
 MakeBeanfileFunc = typing.Callable[[str], pathlib.Path]
@@ -207,3 +208,32 @@ def test_commodity(
     assert commodity1.date == datetime.date(1970, 1, 2)
     assert commodity1.entry_type == EntryType.COMMODITY
     assert commodity1.currency == "ETH"
+
+
+def test_pad(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Checking
+    1970-01-01 open Equity:Opening-Balances
+    2023-02-10 pad Assets:Checking Equity:Opening-Balances
+    2023-03-22 balance Assets:Checking 123.45 USD
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(output_dir / "pad.bin", "COPY pad FROM STDIN WITH (FORMAT BINARY)")
+    pads = db.query(Pad).order_by(Pad.date).all()
+    assert len(pads) == 1
+
+    pad0 = pads[0]
+    assert pad0.date == datetime.date(2023, 2, 10)
+    assert pad0.entry_type == EntryType.PAD
+    assert pad0.account == "Assets:Checking"
+    assert pad0.source_account == "Equity:Opening-Balances"

@@ -7,6 +7,7 @@ from .data_types import EntryTypeConfig
 from .tables import CLOSE_TABLE
 from .tables import COMMODITY_TABLE
 from .tables import OPEN_TABLE
+from .tables import PAD_TABLE
 
 ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Open: EntryTypeConfig(
@@ -20,5 +21,9 @@ ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Commodity: EntryTypeConfig(
         type=EntryType.COMMODITY,
         table=COMMODITY_TABLE,
+    ),
+    data.Pad: EntryTypeConfig(
+        type=EntryType.PAD,
+        table=PAD_TABLE,
     ),
 }

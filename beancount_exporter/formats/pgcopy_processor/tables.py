@@ -87,3 +87,22 @@ COMMODITY_TABLE: Table = (
         typelem=0,
     ),
 )
+PAD_TABLE: Table = (
+    ID_COLUMN,
+    Column(
+        attname="account",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="source_account",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+)

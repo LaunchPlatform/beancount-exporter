@@ -7,7 +7,6 @@ import uuid
 import pgcopy
 from beancount.core import data
 from beancount.loader import LoadError
-from beancount_data.data_types import EntryType
 
 from ..processor import Processor
 from .configs import ENTRY_TYPE_CONFIGS

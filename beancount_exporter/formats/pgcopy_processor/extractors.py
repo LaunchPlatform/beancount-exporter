@@ -27,5 +27,6 @@ def extract_open(
     return (
         id,
         entry.account,
-        # TODO:
+        entry.currencies,
+        entry.booking.value if entry.booking is not None else None,
     )

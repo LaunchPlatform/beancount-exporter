@@ -407,6 +407,102 @@ def test_transaction_with_price(
     assert posting1.units_currency == "USD"
 
 
+def test_transaction_with_cost(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 open Assets:Cash
+    1970-01-01 open Assets:TSLA
+    1970-01-01 open Income:PnL
+    1970-01-02 * "Buy TSLA"
+        Assets:TSLA     10.0  TSLA {123.45 USD, "ref-001"}
+        Assets:Cash
+    1970-01-03 * "Sell TSLA"
+        Assets:TSLA     -5.0  TSLA {123.45 USD, 1970-01-02, "ref-001"} @ 200.00 USD
+        Assets:Cash   1000.0 USD
+        Income:PnL   -382.75 USD
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(
+        output_dir / "transaction.bin",
+        "COPY transaction FROM STDIN WITH (FORMAT BINARY)",
+    )
+    import_table(
+        output_dir / "posting.bin",
+        "COPY posting FROM STDIN WITH (FORMAT BINARY)",
+    )
+    transactions = db.query(Transaction).order_by(Transaction.date).all()
+    assert len(transactions) == 2
+    assert db.query(Posting).count() == 5
+
+    transaction0 = transactions[0]
+    assert transaction0.date == datetime.date(1970, 1, 2)
+    assert transaction0.entry_type == EntryType.TRANSACTION
+    assert transaction0.flag == "*"
+    assert transaction0.narration == "Buy TSLA"
+    assert len(transaction0.postings) == 2
+
+    postings = (
+        db.query(Posting)
+        .filter_by(transaction=transaction0)
+        .order_by(Posting.account)
+        .all()
+    )
+    posting0 = postings[0]
+    assert posting0.account == "Assets:Cash"
+    assert posting0.units_number == decimal.Decimal("-1234.500")
+    assert posting0.units_currency == "USD"
+
+    posting1 = postings[1]
+    assert posting1.account == "Assets:TSLA"
+    assert posting1.units_number == decimal.Decimal("10")
+    assert posting1.units_currency == "TSLA"
+    assert posting1.cost_currency == "USD"
+    assert posting1.cost_date == datetime.date(1970, 1, 2)
+    assert posting1.cost_number == decimal.Decimal("123.45")
+    assert posting1.cost_label == "ref-001"
+
+    transaction1 = transactions[1]
+    assert transaction1.date == datetime.date(1970, 1, 3)
+    assert transaction1.entry_type == EntryType.TRANSACTION
+    assert transaction1.flag == "*"
+    assert transaction1.narration == "Sell TSLA"
+    assert len(transaction1.postings) == 3
+
+    postings = (
+        db.query(Posting)
+        .filter_by(transaction=transaction1)
+        .order_by(Posting.account)
+        .all()
+    )
+    posting0 = postings[0]
+    assert posting0.account == "Assets:Cash"
+    assert posting0.units_number == decimal.Decimal("1000")
+    assert posting0.units_currency == "USD"
+
+    posting1 = postings[1]
+    assert posting1.account == "Assets:TSLA"
+    assert posting1.units_number == decimal.Decimal("-5")
+    assert posting1.units_currency == "TSLA"
+    assert posting1.cost_currency == "USD"
+    assert posting1.cost_date == datetime.date(1970, 1, 2)
+    assert posting1.cost_number == decimal.Decimal("123.45")
+    assert posting1.cost_label == "ref-001"
+
+    posting2 = postings[2]
+    assert posting2.account == "Income:PnL"
+    assert posting2.units_number == decimal.Decimal("-382.75")
+    assert posting2.units_currency == "USD"
+
+
 def test_note(
     db: Session,
     make_beanfile: MakeBeanfileFunc,

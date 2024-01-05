@@ -22,6 +22,7 @@ from .db.event import Event
 from .db.note import Note
 from .db.open import Open
 from .db.pad import Pad
+from .db.price import Price
 from beancount_exporter.main import main
 
 MakeBeanfileFunc = typing.Callable[[str], pathlib.Path]
@@ -365,3 +366,38 @@ def test_event(
     assert event1.entry_type == EntryType.EVENT
     assert event1.type == "country"
     assert event1.description == "US"
+
+
+def test_price(
+    db: Session,
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+    import_table: ImportTableFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    1970-01-01 price BTC 123.45 USD
+    1970-01-02 price ETH 200.12 USD
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    import_table(
+        output_dir / "entry_base.bin", "COPY entry FROM STDIN WITH (FORMAT BINARY)"
+    )
+    import_table(output_dir / "price.bin", "COPY price FROM STDIN WITH (FORMAT BINARY)")
+    prices = db.query(Price).order_by(Price.date).all()
+    assert len(prices) == 2
+
+    price0 = prices[0]
+    assert price0.date == datetime.date(1970, 1, 1)
+    assert price0.entry_type == EntryType.PRICE
+    assert price0.currency == "BTC"
+    assert price0.amount_number == decimal.Decimal("123.45")
+    assert price0.amount_currency == "USD"
+
+    price1 = prices[1]
+    assert price1.date == datetime.date(1970, 1, 2)
+    assert price1.entry_type == EntryType.PRICE
+    assert price1.currency == "ETH"
+    assert price1.amount_number == decimal.Decimal("200.12")
+    assert price1.amount_currency == "USD"

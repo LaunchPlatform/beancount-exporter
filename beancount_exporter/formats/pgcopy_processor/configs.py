@@ -11,6 +11,7 @@ from .tables import EVENT_TABLE
 from .tables import NOTE_TABLE
 from .tables import OPEN_TABLE
 from .tables import PAD_TABLE
+from .tables import PRICE_TABLE
 
 ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Open: EntryTypeConfig(
@@ -41,5 +42,9 @@ ENTRY_TYPE_CONFIGS: dict[typing.Type, EntryTypeConfig] = {
     data.Event: EntryTypeConfig(
         type=EntryType.EVENT,
         table=EVENT_TABLE,
+    ),
+    data.Price: EntryTypeConfig(
+        type=EntryType.PRICE,
+        table=PRICE_TABLE,
     ),
 }

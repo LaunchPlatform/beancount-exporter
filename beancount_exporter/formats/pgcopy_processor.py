@@ -29,29 +29,52 @@ class Column(typing.NamedTuple):
     typelem: int
 
 
-DATE_COLUMN = Column(
-    attname="date",
-    type_category="D",
-    type_name="date",
-    type_mod=-1,
-    not_null=True,
-    typelem=0,
-)
-META_COLUMN = Column(
-    attname="meta",
+ID_COLUMN = Column(
+    attname="id",
     type_category="U",
-    type_name="jsonb",
+    type_name="uuid",
     type_mod=-1,
     not_null=True,
     typelem=0,
-)
-SHARED_COLUMNS = (
-    DATE_COLUMN,
-    META_COLUMN,
 )
 
+ENTRY_TABLE = (
+    ID_COLUMN,
+    Column(
+        attname="entry_type",
+        type_category="E",
+        type_name="entrytype",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="date",
+        type_category="D",
+        type_name="date",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="meta",
+        type_category="U",
+        type_name="jsonb",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+    Column(
+        attname="account",
+        type_category="S",
+        type_name="varchar",
+        type_mod=-1,
+        not_null=True,
+        typelem=0,
+    ),
+)
 OPEN_TABLE = (
-    *SHARED_COLUMNS,
+    ID_COLUMN,
     Column(
         attname="account",
         type_category="S",

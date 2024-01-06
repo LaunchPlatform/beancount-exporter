@@ -19,6 +19,7 @@ jobs:
       - checkout
       - python/install-packages:
           pkg-manager: poetry
+          args: "--extras=pgcopy"
       - run:
           name: Run test
           command: poetry run python -m pytest ./tests -svvvv

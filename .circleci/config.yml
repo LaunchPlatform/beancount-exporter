@@ -3,12 +3,12 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@1.5.0
+  python: circleci/python@2.1.1
 
 jobs:
   test:
     docker:
-      - image: cimg/python:3.10.2
+      - image: cimg/python:3.11.7
         environment:
           DATABASE_URL: postgresql://beancount@localhost/circle_test
       - image: cimg/postgres:16.1
@@ -24,7 +24,7 @@ jobs:
           command: poetry run python -m pytest ./tests -svvvv
   build-and-publish:
     docker:
-      - image: cimg/python:3.10.2
+      - image: cimg/python:3.11.7
     steps:
       - checkout
       - python/install-packages:

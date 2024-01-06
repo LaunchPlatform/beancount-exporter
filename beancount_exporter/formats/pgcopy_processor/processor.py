@@ -174,7 +174,9 @@ class PgCopyProcessor(Processor):
         meta = posting.meta
         if posting.meta is not None:
             meta = meta.copy()
-            meta["filename"] = self.strip_path(meta["filename"])
+            filename = meta.get("filename")
+            if filename is not None:
+                meta["filename"] = self.strip_path(filename)
 
         return (
             id,

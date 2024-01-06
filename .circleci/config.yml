@@ -29,7 +29,7 @@ jobs:
       - checkout
       - python/install-packages:
           pkg-manager: poetry
-          args: ["--extras=pgcopy"]
+          args: "--extras=pgcopy"
       - run:
           name: config
           command: |

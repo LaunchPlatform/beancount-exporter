@@ -60,17 +60,20 @@ requests = "*"
 
 [[package]]
 name = "beancount-data"
-version = "0.1.5"
+version = "2.0.3"
 description = "Pydantic data models for exporting Beancount data"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "beancount-data-0.1.5.tar.gz", hash = "sha256:f7cb501ef55344ec2bc3fe3f3b4e727736e4ceeae6eda5ebcbf1e02e9d826112"},
-    {file = "beancount_data-0.1.5-py3-none-any.whl", hash = "sha256:a710b25f110db14facca614649695d07138af9778d5bd2486713092fecc8be29"},
+    {file = "beancount_data-2.0.3-py3-none-any.whl", hash = "sha256:9cf86273e92db9c774fc3d1e39de704aed7d4ed7f34d5ef1cb191c2e4e368fd3"},
+    {file = "beancount_data-2.0.3.tar.gz", hash = "sha256:a598ce92fd2fa36a8a81325bf1ed915a4913656b9ca21deb20fa096803a8eb41"},
 ]
 
 [package.dependencies]
 pydantic = ">=1.9.0,<2.0.0"
+
+[package.extras]
+flatbuffers = ["flatbuffers (>=23.5,<24.0)"]
 
 [[package]]
 name = "beautifulsoup4"
@@ -1116,4 +1119,4 @@ pgcopy = ["pgcopy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "be71a7745a48fbddab940c19f57b39799face07ec9b634bdedcc9c3fa80b9d83"
+content-hash = "8641bd228d12baf8140060ae5c19f4b6c5cf754768afcd2fd8d6fce377badc49"

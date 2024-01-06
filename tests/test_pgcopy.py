@@ -5,6 +5,7 @@ import pathlib
 import textwrap
 import typing
 
+import orjson
 import pytest
 from beancount_data.data_types import Booking
 from beancount_data.data_types import EntryType
@@ -98,6 +99,21 @@ def import_table(db: Session) -> ImportTableFunc:
             )
 
     return _import_table
+
+
+def test_option_maps(
+    make_beanfile: MakeBeanfileFunc,
+    export_entries: ExportEntriesFunc,
+):
+    bean_file_path = make_beanfile(
+        """\
+    option "inferred_tolerance_default" "JPY:1"
+    """
+    )
+    output_dir = export_entries(bean_file_path)
+    with open(output_dir / "option_maps.json", "rb") as fo:
+        options = orjson.loads(fo.read())
+        assert options["inferred_tolerance_default"] == {"JPY": "1"}
 
 
 def test_opens(

@@ -79,6 +79,12 @@ def main(
             output_dir_path = pathlib.Path(str(output_dir))
             processor = PgCopyProcessor(
                 base_path=pathlib.Path(str(base_path)),
+                option_maps_file=stack.enter_context(
+                    open(output_dir_path / "option_maps.json", "wb")
+                ),
+                errors_file=stack.enter_context(
+                    open(output_dir_path / "errors.json", "wb")
+                ),
                 entry_base_file=stack.enter_context(
                     open(output_dir_path / "entry_base.bin", "wb")
                 ),

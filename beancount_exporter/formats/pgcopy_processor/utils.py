@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import enum
 import functools
 import json
 import struct
@@ -35,6 +36,16 @@ def convert_custom_value(
 def orjson_default(value: typing.Any) -> typing.Any:
     if isinstance(value, decimal.Decimal):
         return str(value)
+    raise TypeError
+
+
+def orjson_option_maps_default(value: typing.Any) -> typing.Any:
+    if isinstance(value, set):
+        return list(value)
+    elif isinstance(value, decimal.Decimal):
+        return str(value)
+    elif isinstance(value, enum.Enum):
+        return value.value
     raise TypeError
 
 

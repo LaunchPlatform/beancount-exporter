@@ -9,6 +9,9 @@ import pgcopy
 from beancount.core import data
 from beancount.loader import LoadError
 from beancount_data.data_types import EntryType
+from beancount_data.data_types import Transaction
+from beancount_data.data_types import ValidationError
+from beancount_data.data_types import ValidationResult
 
 from ..processor import Processor
 from .configs import ENTRY_TYPE_CONFIGS
@@ -19,6 +22,7 @@ from .tables import POSTING_TABLE
 from .utils import compile_formatter
 from .utils import convert_custom_value
 from .utils import orjson_default
+from .utils import orjson_option_maps_default
 from .utils import serialize_row
 
 
@@ -26,6 +30,8 @@ class PgCopyProcessor(Processor):
     def __init__(
         self,
         base_path: pathlib.Path,
+        option_maps_file: io.BytesIO,
+        errors_file: io.BytesIO,
         entry_base_file: io.BytesIO,
         posting_file: io.BytesIO,
         entry_files: dict[typing.Type, io.BytesIO],
@@ -35,6 +41,8 @@ class PgCopyProcessor(Processor):
         encoding: str = "utf8",
     ):
         super().__init__(base_path=base_path)
+        self.option_maps_file = option_maps_file
+        self.errors_file = errors_file
         self.entry_base_file = entry_base_file
         self.posting_file = posting_file
         self.entry_files = entry_files
@@ -217,10 +225,30 @@ class PgCopyProcessor(Processor):
             pgcopy_file.write(pgcopy.copy.BINCOPY_TRAILER)
 
     def process_options(self, options: dict[str, typing.Any]):
-        pass
+        self.option_maps_file.write(
+            orjson.dumps(options, default=orjson_option_maps_default)
+        )
 
     def process_errors(self, errors: list[LoadError]):
-        pass
+        validation_result = ValidationResult(
+            errors=list(map(ValidationError.from_orm, errors))
+        )
+        for error in validation_result.errors:
+            filename = error.source.get("filename")
+            if filename is not None:
+                error.source["filename"] = self.strip_path(filename)
+            if error.entry is not None:
+                if "filename" in error.entry.meta:
+                    error.entry.meta["filename"] = self.strip_path(
+                        error.entry.meta["filename"]
+                    )
+                if isinstance(error.entry, Transaction):
+                    for posting in error.entry.postings:
+                        posting_filename = posting.meta.get("filename")
+                        if posting_filename is None:
+                            continue
+                        posting.meta["filename"] = self.strip_path(posting_filename)
+        self.errors_file.write(validation_result.json().encode("utf8"))
 
     def process_entries(self, entries: data.Entries):
         extractors = {

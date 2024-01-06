@@ -5,7 +5,7 @@ import json
 import struct
 import typing
 
-import pgcopy
+import pgcopy.copy
 from beancount.core import account
 from beancount.core import data
 from beancount.parser.grammar import ValueType

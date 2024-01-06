@@ -10,7 +10,7 @@ jobs:
     docker:
       - image: cimg/python:3.11.7
         environment:
-          DATABASE_URL: postgresql://beancount@localhost/circle_test
+          DATABASE_URL: postgresql://beancount@localhost/beancount
       - image: cimg/postgres:16.1
         environment:
           POSTGRES_USER: beancount

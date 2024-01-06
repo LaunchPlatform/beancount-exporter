@@ -11,7 +11,7 @@ jobs:
       - image: cimg/python:3.10.2
         environment:
           DATABASE_URL: postgresql://beancount@localhost/circle_test
-      - image: cimg/postgres:16.1.0
+      - image: cimg/postgres:16.1
         environment:
           POSTGRES_USER: beancount
           POSTGRES_DB: beancount

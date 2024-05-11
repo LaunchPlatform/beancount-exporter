@@ -86,10 +86,10 @@ def test_txn_entries_generated_from_pad(tmp_path: pathlib.Path):
     )
     assert len(padding_txn["postings"]) == 2
     assert padding_txn["postings"][0]["account"] == "Assets:Checking"
-    assert padding_txn["postings"][0]["units"]["number"] == 123.45
+    assert padding_txn["postings"][0]["units"]["number"] == "123.45"
     assert padding_txn["postings"][0]["units"]["currency"] == "USD"
     assert padding_txn["postings"][1]["account"] == "Equity:Opening-Balances"
-    assert padding_txn["postings"][1]["units"]["number"] == -123.45
+    assert padding_txn["postings"][1]["units"]["number"] == "-123.45"
     assert padding_txn["postings"][1]["units"]["currency"] == "USD"
 
 

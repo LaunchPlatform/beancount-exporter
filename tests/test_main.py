@@ -119,8 +119,8 @@ def test_custom_values(tmp_path: pathlib.Path):
     assert custom["entry_type"] == "custom"
     assert custom["type"] == "MOCK_TYPE"
     assert custom["values"] == [
-        {"number": 123.45, "currency": "USD"},
-        "True",
+        {"number": "123.45", "currency": "USD"},
+        True,
         "MOCK_STR_VALUE",
-        678.9,
+        "678.9",
     ]

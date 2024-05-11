@@ -8,7 +8,7 @@ license = "GNU GPLv2"
 [tool.poetry.dependencies]
 python = "^3.10"
 beancount = "^2.3.5"
-beancount-data = "^2.0.0"
+beancount-data = ">= 3.0.0, <4.0.0"
 click = "^8.0.4"
 pgcopy-standalone = "^1.6.0"
 orjson = { version = "^3.9.10", optional = true }

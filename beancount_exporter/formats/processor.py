@@ -8,11 +8,22 @@ from ..utils import strip_base_path
 
 
 class Processor:
-    def __init__(self, base_path: pathlib.Path):
+    def __init__(
+        self,
+        base_path: pathlib.Path,
+        strip_paths: bool = True,
+        path_cache: dict[str, str] | None = None,
+    ):
         self.base_path = base_path
+        self.strip_paths = strip_paths
+        self.path_cache = {} if path_cache is None else path_cache
 
     def strip_path(self, path: str | list[str]) -> str | list[str]:
-        return strip_base_path(path, base_path=self.base_path)
+        if not self.strip_paths:
+            return path
+        return strip_base_path(
+            path, base_path=self.base_path, cache=self.path_cache
+        )
 
     def start(self):
         raise NotImplementedError()

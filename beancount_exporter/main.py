@@ -72,13 +72,22 @@ def main(
         extra_validations=validation.HARDCORE_VALIDATIONS,
     )
 
+    strip_paths = not disable_path_stripping
+    base_path_value = pathlib.Path(str(base_path))
+    path_cache: dict[str, str] = {}
     with contextlib.ExitStack() as stack:
         if format == ExportFormat.JSON:
-            processor = JsonProcessor(base_path=pathlib.Path(str(base_path)))
+            processor = JsonProcessor(
+                base_path=base_path_value,
+                strip_paths=strip_paths,
+                path_cache=path_cache,
+            )
         elif format == ExportFormat.PGCOPY:
             output_dir_path = pathlib.Path(str(output_dir))
             processor = PgCopyProcessor(
-                base_path=pathlib.Path(str(base_path)),
+                base_path=base_path_value,
+                strip_paths=strip_paths,
+                path_cache=path_cache,
                 option_maps_file=stack.enter_context(
                     open(output_dir_path / "option_maps.json", "wb")
                 ),
@@ -101,9 +110,8 @@ def main(
         processor.start()
         options = options_map.copy()
         for key, value in options.items():
-            if not disable_path_stripping:
-                if key in {"filename", "include"}:
-                    options[key] = processor.strip_path(value)
+            if key in {"filename", "include"}:
+                options[key] = processor.strip_path(value)
         del options["dcontext"]
         if not disable_options:
             processor.process_options(options)

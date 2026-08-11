@@ -39,8 +39,12 @@ class PgCopyProcessor(Processor):
         posting_table: Table = POSTING_TABLE,
         entry_configs: dict[typing.Type, EntryTypeConfig] | None = None,
         encoding: str = "utf8",
+        strip_paths: bool = True,
+        path_cache: dict[str, str] | None = None,
     ):
-        super().__init__(base_path=base_path)
+        super().__init__(
+            base_path=base_path, strip_paths=strip_paths, path_cache=path_cache
+        )
         self.option_maps_file = option_maps_file
         self.errors_file = errors_file
         self.entry_base_file = entry_base_file
